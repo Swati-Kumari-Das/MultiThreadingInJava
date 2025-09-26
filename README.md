@@ -333,3 +333,72 @@ public class ThreadDemo {
 
 - **State Transition**:  
   Threads move between states automatically, managed by the **JVM** and the **Operating System (OS)**.
+
+
+  # Thread vs Runnable in Java
+
+## 1. Using **Thread Class**
+- Create a class that **extends Thread**.
+- Override the `run()` method.
+- Create an object of that class and call `start()`.
+
+### Example:
+```java
+class MyThread extends Thread {
+    @Override
+    public void run() {
+        System.out.println("Thread is running...");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        MyThread t1 = new MyThread();
+        t1.start(); // starts new thread
+    }
+}
+```
+2. Using Runnable Interface
+Create a class that implements Runnable.
+
+Override the run() method.
+
+Pass the object to a Thread and call start().
+
+Example:
+```java
+class MyRunnable implements Runnable {
+    @Override
+    public void run() {
+        System.out.println("Runnable is running...");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Runnable r = new MyRunnable();
+        Thread t1 = new Thread(r);
+        t1.start(); // starts new thread
+    }
+}
+```
+# Thread vs Runnable in Java
+
+## Key Differences
+
+| **Extending Thread Class**               | **Implementing Runnable Interface**        |
+|------------------------------------------|---------------------------------------------|
+| Subclass `Thread` directly.              | Create a class that implements `Runnable`. |
+| Override `run()` method.                 | Override `run()` method.                   |
+| Object itself is a thread.               | `Runnable` is passed into a `Thread`.      |
+| Less flexible (cannot extend another class). | More flexible (can implement multiple interfaces). |
+
+---
+
+## Summary
+- **Thread** = Lightweight unit of execution in Java.  
+- **Main Thread** = The first thread that runs in any Java program.  
+- Two ways to create threads → **Extend Thread** OR **Implement Runnable**.  
+- **Runnable is preferred** in real-world applications because:
+  - Java supports only **single inheritance**.  
+  - Runnable allows a class to **extend another class** while still enabling multithreading.  
