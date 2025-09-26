@@ -98,4 +98,111 @@
 - **Thread** = Smallest execution unit inside a process.  
 - **Multitasking** = Multiple processes running.  
 - **Multithreading** = Multiple threads within one process.  
-- **Time slicing & Context switching** = OS techniques to achieve concurrency.  
+- **Time slicing & Context switching** = OS techniques to achieve concurrency.
+
+  # Multithreading in Java
+
+## What is Multithreading?
+- In Java, **multithreading** is the concurrent execution of two or more threads to maximize the utilization of the CPU.  
+- A **thread** is the smallest unit of processing (a lightweight process).  
+- Java provides multithreading support through:
+  - `java.lang.Thread` class  
+  - `java.lang.Runnable` interface  
+
+---
+
+## Main Thread
+- When a Java program starts, one thread begins running immediately → called the **main thread**.  
+- This main thread is responsible for executing the `main` method of the program.  
+
+---
+
+## Multithreading in Single-core vs Multi-core
+- **Single-core environment**  
+  Threads are managed by the JVM + OS using **time-slicing** to give the illusion of concurrency.  
+
+- **Multi-core environment**  
+  JVM can distribute threads across multiple cores, enabling **true parallel execution**.  
+
+---
+
+## Creating Threads in Java
+
+There are **two ways** to create a new thread in Java:  
+
+1. **Extending the Thread class**  
+2. **Implementing the Runnable interface**
+
+---
+
+### 1. Extending the `Thread` class
+
+Steps:
+1. Create a new class that **extends `Thread`**.  
+2. Override the **`run()`** method to define the task.  
+3. Create an object of the new class and call **`start()`** to initiate the thread.  
+
+```java
+// Example: Extending Thread class
+class WorldThread extends Thread {
+    @Override
+    public void run() {
+        System.out.println("Hello from WorldThread!");
+    }
+}
+
+public class ThreadExample1 {
+    public static void main(String[] args) {
+        WorldThread t1 = new WorldThread(); // create thread object
+        t1.start(); // start new thread
+        System.out.println("Hello from Main Thread!");
+    }
+}
+
+```
+2. Implementing the Runnable interface
+Steps:
+
+Create a new class that implements Runnable.
+
+Override the run() method to define the task.
+
+Pass the runnable object to a Thread object and call start().
+
+
+```java
+// Example: Implementing Runnable interface
+class WorldRunnable implements Runnable {
+    @Override
+    public void run() {
+        System.out.println("Hello from WorldRunnable!");
+    }
+}
+
+public class ThreadExample2 {
+    public static void main(String[] args) {
+        WorldRunnable worldTask = new WorldRunnable();   // create runnable object
+        Thread t2 = new Thread(worldTask);              // pass runnable to Thread
+        t2.start();                                     // start new thread
+        System.out.println("Hello from Main Thread!");
+    }
+}
+```
+## Key Difference
+
+| Extending Thread Class | Implementing Runnable Interface |
+|-------------------------|---------------------------------|
+| Subclass `Thread` directly. | Create a class that implements `Runnable`. |
+| Override `run()` method. | Override `run()` method. |
+| Object itself is a thread. | `Runnable` is passed into a `Thread` object. |
+| Less flexible (cannot extend another class). | More flexible (can implement multiple interfaces). |
+
+---
+
+## Summary
+
+- **Thread** = lightweight unit of execution.  
+- **Main Thread** runs the program initially.  
+- Two ways to create threads → **Extend `Thread`** OR **Implement `Runnable`**.  
+- **Runnable is preferred** in real-world applications because it allows better flexibility (Java supports only single inheritance).  
+
