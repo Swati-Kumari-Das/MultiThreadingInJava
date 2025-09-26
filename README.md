@@ -206,3 +206,130 @@ public class ThreadExample2 {
 - Two ways to create threads → **Extend `Thread`** OR **Implement `Runnable`**.  
 - **Runnable is preferred** in real-world applications because it allows better flexibility (Java supports only single inheritance).  
 
+
+# Java Thread Lifecycle
+
+In Java, threads go through multiple states during their execution.  
+The **Thread Lifecycle** defines these states and transitions.
+
+---
+
+## Thread States
+
+1. **NEW**  
+   - A thread is in this state when it is created but not yet started.  
+   - Example: `Thread t = new Thread();`
+
+2. **RUNNABLE**  
+   - After the `start()` method is called, the thread becomes runnable.  
+   - The thread is ready to run and is waiting for CPU time.  
+
+3. **RUNNING**  
+   - The thread is actively executing.  
+   - Only one thread per CPU core can be in the Running state at a time.
+
+4. **WAITING / BLOCKED / TIMED_WAITING**  
+   - **WAITING** → Thread is waiting indefinitely for another thread to signal.  
+   - **TIMED_WAITING** → Thread is waiting for a specific time (e.g., `Thread.sleep(2000)`).  
+   - **BLOCKED** → Thread is waiting to acquire a monitor lock.  
+
+5. **TERMINATED**  
+   - The thread has finished execution.  
+
+---
+
+## Thread Lifecycle Diagram
+
+NEW ---> RUNNABLE ---> RUNNING ---> TERMINATED
+^ | |
+| v v
+| WAITING TIMED_WAITING
+|__________ BLOCKED
+
+
+
+---
+
+## Example 1: NEW → RUNNABLE → RUNNING
+
+```java
+public class Test {
+    public static void main(String[] args) {
+        World ti = new World(); // NEW
+        ti.start(); // RUNNABLE
+        System.out.println(Thread.currentThread().getName());
+
+        for (;;) {
+            System.out.println("Hello");
+        }
+    }
+}
+
+class World extends Thread {
+    @Override
+    public void run() {
+        for (;;) {
+            System.out.println("World");
+        }
+    }
+}
+Example 2: Checking Thread States
+java
+Copy code
+class MyThread extends Thread {
+    @Override
+    public void run() {
+        System.out.println("RUNNING");
+        try {
+            Thread.sleep(2000); // moves to TIMED_WAITING
+        } catch (InterruptedException e) {
+            System.out.println(e);
+        }
+    }
+}
+
+public class ThreadDemo {
+    public static void main(String[] args) throws InterruptedException {
+        MyThread t1 = new MyThread();
+
+        System.out.println(t1.getState()); // NEW
+
+        t1.start();
+        System.out.println(t1.getState()); // RUNNABLE
+
+        Thread.sleep(100);
+        System.out.println(t1.getState()); // TIMED_WAITING (sleeping)
+
+        t1.join();
+        System.out.println(t1.getState()); // TERMINATED
+    }
+}
+```
+# Summary of Thread States in Java
+
+## Thread States
+
+| **State**        | **Description**                                      |
+|-------------------|------------------------------------------------------|
+| **NEW**           | Thread is created but not started.                   |
+| **RUNNABLE**      | Thread is ready, waiting for CPU scheduling.         |
+| **RUNNING**       | Thread is executing on the CPU.                      |
+| **WAITING**       | Thread is waiting indefinitely for another thread.   |
+| **TIMED_WAITING** | Thread is waiting for a specific time (`sleep()`).   |
+| **BLOCKED**       | Thread is waiting for a resource (monitor lock).     |
+| **TERMINATED**    | Thread has finished execution.                       |
+
+---
+
+## Key Points
+
+- **Main Thread**:  
+  When a Java program starts, one thread (main thread) runs immediately.
+
+- **Thread Creation**:  
+  Threads can be created in two ways:  
+  1. Extending the **Thread** class  
+  2. Implementing the **Runnable** interface  
+
+- **State Transition**:  
+  Threads move between states automatically, managed by the **JVM** and the **Operating System (OS)**.
