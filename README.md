@@ -401,4 +401,217 @@ public class Main {
 - Two ways to create threads → **Extend Thread** OR **Implement Runnable**.  
 - **Runnable is preferred** in real-world applications because:
   - Java supports only **single inheritance**.  
-  - Runnable allows a class to **extend another class** while still enabling multithreading.  
+  - Runnable allows a class to **extend another class** while still enabling multithreading.
+ 
+  # Java Thread Methods and Daemon Threads
+
+## 📌 Overview
+In Java, threads provide a way to achieve **multithreading** — the concurrent execution of two or more parts of a program.  
+The `Thread` class provides several useful methods to control and manage thread execution.
+
+---
+
+## 📝 Thread Methods (Quick Reference)
+
+| Method                  | Description |
+|--------------------------|-------------|
+| `start()`               | Starts a new thread and calls the `run()` method internally. |
+| `run()`                 | Defines the code executed by the thread. |
+| `sleep(ms)`             | Pauses execution of the thread for given milliseconds. |
+| `join()`                | Waits for a thread to finish execution. |
+| `getName()` / `setName()` | Gets or sets the thread name. |
+| `getPriority()` / `setPriority()` | Gets or sets thread priority (`1–10`). |
+| `isAlive()`             | Checks if a thread is still running. |
+| `setDaemon(true)`       | Marks a thread as **Daemon (background thread)**. |
+| `isDaemon()`            | Checks if a thread is daemon or not. |
+
+---
+
+## 1️⃣ `start()`
+
+Starts a new thread.  
+Without `start()`, the `run()` method will just run like a normal method in the main thread.
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        System.out.println("Thread is running...");
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        MyThread t1 = new MyThread();
+        t1.start(); // creates a new thread
+    }
+}
+```
+2️⃣ run()
+Contains the code that runs in the thread.
+Calling run() directly won’t start a new thread.
+```java 
+class MyThread extends Thread {
+    public void run() {
+        System.out.println("Running in thread: " + Thread.currentThread().getName());
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        MyThread t1 = new MyThread();
+        t1.run();   // runs in main thread
+        t1.start(); // runs in a separate thread
+    }
+}
+
+```
+3️⃣ sleep(ms)
+Pauses the thread for given milliseconds.
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        for (int i = 1; i <= 3; i++) {
+            System.out.println("Thread running: " + i);
+            try {
+                Thread.sleep(1000); // pause for 1 second
+            } catch (InterruptedException e) {
+                System.out.println(e);
+            }
+        }
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        new MyThread().start();
+    }
+}
+
+```
+4️⃣ join()
+Makes one thread wait until another finishes.
+
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        for (int i = 1; i <= 5; i++) {
+            System.out.println("Child Thread: " + i);
+        }
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        MyThread t1 = new MyThread();
+        t1.start();
+        t1.join(); // main waits for t1
+        System.out.println("Main thread finished after child");
+    }
+}
+
+```
+
+5️⃣ getName() and setName()
+Used to get or set the thread name.
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        System.out.println("Running: " + Thread.currentThread().getName());
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        MyThread t1 = new MyThread();
+        t1.setName("Worker-1");
+        t1.start();
+
+        System.out.println("Main: " + Thread.currentThread().getName());
+    }
+}
+
+```
+6️⃣ getPriority() and setPriority()
+Priority ranges from 1 (MIN_PRIORITY) to 10 (MAX_PRIORITY).
+Default = 5 (NORM_PRIORITY).
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        System.out.println(getName() + " Priority: " + getPriority());
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        MyThread t1 = new MyThread();
+        t1.setPriority(Thread.MAX_PRIORITY);
+        t1.start();
+    }
+}
+
+```
+7️⃣ isAlive()
+Checks if a thread is still running.
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        try { Thread.sleep(500); } catch (Exception e) {}
+        System.out.println("Thread finished");
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        MyThread t1 = new MyThread();
+        t1.start();
+        System.out.println("Alive? " + t1.isAlive());
+        t1.join();
+        System.out.println("Alive after join? " + t1.isAlive());
+    }
+}
+``` 
+🌀 Daemon Threads
+What is a Daemon Thread?
+Background thread that provides services to user threads.
+
+JVM exits automatically when only daemon threads are running.
+
+Example: Garbage Collector.
+
+Example
+
+```java
+class MyDaemon extends Thread {
+    public void run() {
+        while (true) {
+            System.out.println("Daemon running...");
+            try { Thread.sleep(1000); } catch (Exception e) {}
+        }
+    }
+}
+
+public class Test {
+    public static void main(String[] args) {
+        MyDaemon d = new MyDaemon();
+        d.setDaemon(true); // must set before start()
+        d.start();
+        
+        System.out.println("Main thread finished...");
+        // JVM will exit even if daemon is still running
+    }
+}
+
+```
+🔑 Key Points
+User threads → Main tasks of application.
+
+Daemon threads → Background tasks.
+
+JVM terminates once all user threads finish, regardless of daemon threads.
+
+
