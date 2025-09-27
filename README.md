@@ -942,13 +942,120 @@ Deadlock prevention tools	Limited	✅ Advanced
 
 ✅ Final Takeaway
 Use synchronized for simple cases.
-
 Use ReentrantLock when you need:
-
 Timeout,
-
 Non-blocking tryLock,
-
 Interruptible waits,
-
 More flexible deadlock handling.
+
+
+# 🔐 Locks in Java (Extended with `lockInterruptibly`)
+
+## 📌 Why `lockInterruptibly`?
+- Sometimes a thread may **wait indefinitely** to acquire a lock.
+- Using `lockInterruptibly()`, the thread can be **interrupted while waiting**.
+- This prevents situations where a thread gets stuck forever.
+
+---
+
+## ⚡ Example Without Interruptibility (Thread stuck)
+
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+class SharedResource {
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void longTask() {
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " got the lock, working...");
+            Thread.sleep(5000); // simulates long work
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        SharedResource resource = new SharedResource();
+
+        Thread t1 = new Thread(resource::longTask, "T1");
+        Thread t2 = new Thread(resource::longTask, "T2");
+
+        t1.start();
+        Thread.sleep(100); // ensure T1 acquires the lock first
+        t2.start();
+
+        // ❌ If we try to interrupt t2, it will still wait for lock forever
+        t2.interrupt();
+    }
+}
+```
+➡️ Here, even though t2.interrupt() is called, t2 stays blocked until T1 releases the lock.
+
+✅ Example With lockInterruptibly()
+```java
+
+import java.util.concurrent.locks.ReentrantLock;
+
+class SharedResource {
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void longTask() {
+        try {
+            lock.lockInterruptibly(); // waits, but can be interrupted
+            try {
+                System.out.println(Thread.currentThread().getName() + " got the lock, working...");
+                Thread.sleep(5000);
+            } finally {
+                lock.unlock();
+            }
+        } catch (InterruptedException e) {
+            System.out.println(Thread.currentThread().getName() + " was interrupted while waiting!");
+        }
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        SharedResource resource = new SharedResource();
+
+        Thread t1 = new Thread(resource::longTask, "T1");
+        Thread t2 = new Thread(resource::longTask, "T2");
+
+        t1.start();
+        Thread.sleep(100); // ensure T1 acquires the lock
+        t2.start();
+
+        Thread.sleep(1000); 
+        t2.interrupt(); // ✅ t2 exits gracefully instead of waiting forever
+    }
+}
+```
+📝 Output (sample)
+
+T1 got the lock, working...
+T2 was interrupted while waiting!
+
+🔑 Key Notes on lockInterruptibly()
+Use when you don’t want threads stuck forever.
+
+Thread can react to interrupts while waiting.
+
+Must be wrapped in try-catch for InterruptedException.
+
+Great for systems where responsiveness matters (e.g., servers, UI threads).
+
+# 📋 Comparison Recap of Lock Methods in Java
+
+| Method                | Behavior |
+|------------------------|----------|
+| `lock()`              | Blocks until lock is acquired (ignores interrupt). |
+| `tryLock()`           | Tries immediately (or with timeout). Non-blocking option. |
+| `lockInterruptibly()` | Blocks until lock is acquired **but responds to interrupts**. |
+
+
