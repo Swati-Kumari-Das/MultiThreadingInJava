@@ -738,3 +738,217 @@ Method level → public synchronized void method()
 Block level → synchronized(object) { ... }
 
 Guarantees data consistency, but adds overhead (slower).
+
+
+# 🔐 Locks in Java
+
+## 📌 Why Do We Need Locks?
+- `synchronized` works, but it has **limitations**:
+  1. **Less control** → Once a thread enters a synchronized block, others must wait (you can’t interrupt or timeout).
+  2. **Deadlocks** are harder to handle.
+  3. No way to check if a lock is available without blocking.
+  4. Always tied to the intrinsic lock of an object.
+
+➡️ To overcome these issues, Java introduced the **`Lock` interface** in `java.util.concurrent.locks`.
+
+---
+
+## 🏷️ Types of Locks
+
+### 1. Intrinsic Locks (Monitor Locks)
+- Built into every Java object.
+- Used implicitly when you use `synchronized`.
+- Simple but less flexible.
+
+```java
+class Counter {
+    private int count = 0;
+
+    public synchronized void increment() {
+        count++;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+```
+2. Explicit Locks
+Provided in java.util.concurrent.locks.
+
+You explicitly control them with lock() and unlock().
+
+Example: ReentrantLock.
+
+⚡ Problem with Synchronization Example
+
+```java
+class SharedResource {
+    private int count = 0;
+
+    public void increment() {
+        // ❌ Not synchronized → race condition
+        count++;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        SharedResource s = new SharedResource();
+
+        Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) s.increment();
+        });
+
+        Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) s.increment();
+        });
+
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        System.out.println("Final Count: " + s.getCount()); 
+        // ❌ May be < 2000 due to race condition
+    }
+}
+```
+✅ Solution Using ReentrantLock
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+class SharedResource {
+    private int count = 0;
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void increment() {
+        lock.lock();   // acquire lock
+        try {
+            count++;
+        } finally {
+            lock.unlock(); // release lock (always in finally!)
+        }
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        SharedResource s = new SharedResource();
+
+        Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) s.increment();
+        });
+
+        Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) s.increment();
+        });
+
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        System.out.println("Final Count: " + s.getCount()); 
+        // ✅ Always 2000 now
+    }
+}
+```
+🔄 How the Flow Goes Between Threads
+Thread A calls lock.lock() → acquires the lock.
+
+Thread B calls lock.lock() → must wait until A releases the lock.
+
+Thread A executes critical section, then calls unlock().
+
+Thread B gets the lock and continues.
+
+🔑 Features of ReentrantLock
+1. Reentrant
+A thread holding the lock can acquire it again without deadlocking itself.
+
+```java
+lock.lock();
+lock.lock(); // same thread can lock again
+try {
+    // critical section
+} finally {
+    lock.unlock();
+    lock.unlock(); // must unlock twice
+}
+```
+2. tryLock()
+Attempts to acquire the lock without blocking.
+
+```java
+
+if (lock.tryLock()) {
+    try {
+        System.out.println("Lock acquired");
+    } finally {
+        lock.unlock();
+    }
+} else {
+    System.out.println("Lock not available, skipping work");
+}
+```
+3. tryLock with Timeout
+Prevents deadlock by waiting only a limited time.
+
+```java
+
+if (lock.tryLock(2, TimeUnit.SECONDS)) {
+    try {
+        System.out.println("Work done safely");
+    } finally {
+        lock.unlock();
+    }
+} else {
+    System.out.println("Could not get lock, avoiding deadlock");
+}
+```
+4. Interruptible Locking
+You can interrupt a thread waiting for a lock.
+
+```java
+
+try {
+    lock.lockInterruptibly();
+    try {
+        System.out.println("Got the lock!");
+    } finally {
+        lock.unlock();
+    }
+} catch (InterruptedException e) {
+    System.out.println("Thread interrupted while waiting for lock");
+}
+```
+📋 Summary
+Feature	synchronized (Intrinsic Lock)	ReentrantLock (Explicit Lock)
+Simplicity	Easy to use	More code (lock/unlock)
+Reentrancy	✅ Yes	✅ Yes
+Try acquiring lock	❌ No	✅ tryLock()
+Timeout on lock	❌ No	✅ Yes
+Interrupt while waiting	❌ No	✅ Yes
+Deadlock prevention tools	Limited	✅ Advanced
+
+✅ Final Takeaway
+Use synchronized for simple cases.
+
+Use ReentrantLock when you need:
+
+Timeout,
+
+Non-blocking tryLock,
+
+Interruptible waits,
+
+More flexible deadlock handling.
