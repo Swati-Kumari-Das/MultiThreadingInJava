@@ -614,4 +614,127 @@ Daemon threads → Background tasks.
 
 JVM terminates once all user threads finish, regardless of daemon threads.
 
+# 🔒 Synchronization in Java
 
+## 📌 What is Synchronization?
+- In multithreading, multiple threads may try to access **shared resources** (like variables, objects, or files) at the same time.  
+- **Synchronization** is the process of controlling access to these shared resources to avoid data inconsistency.  
+- Java provides the `synchronized` keyword to achieve synchronization.
+
+---
+
+## ⚡ The Problem: Race Condition
+- A **race condition** happens when two or more threads try to access and modify a shared resource at the same time.  
+- This can lead to **unexpected results**.
+
+### Example Without Synchronization (Race Condition)
+
+```java
+class Counter {
+    int count = 0;
+
+    public void increment() {
+        count++; // critical section
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        Counter c = new Counter();
+
+        Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) c.increment();
+        });
+
+        Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) c.increment();
+        });
+
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        System.out.println("Final Count: " + c.count); 
+        // ❌ Output may be less than 2000 due to race condition
+    }
+}
+
+```
+🏷️ Critical Section
+The part of the code that accesses shared resources is called the critical section.
+
+In the above example, count++ is a critical section.
+
+✅ Solution: Mutual Exclusion
+To solve race conditions, we need mutual exclusion:
+Only one thread can access the critical section at a time.
+
+In Java, this is achieved using the synchronized keyword.
+
+🔑 Using synchronized Method
+
+```java
+class Counter {
+    int count = 0;
+
+    public synchronized void increment() {
+        count++; // only one thread at a time can enter here
+    }
+}
+
+public class Test {
+    public static void main(String[] args) throws InterruptedException {
+        Counter c = new Counter();
+
+        Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) c.increment();
+        });
+
+        Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) c.increment();
+        });
+
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        System.out.println("Final Count: " + c.count); 
+        // ✅ Always 2000 now
+    }
+}
+``` 
+🔒 Using synchronized Block
+Instead of synchronizing the whole method, we can synchronize only the critical section (better performance).
+
+```java 
+class Counter {
+    int count = 0;
+
+    public void increment() {
+        synchronized (this) {
+            count++;
+        }
+    }
+}
+```
+🔑 Key Concepts Recap
+Race Condition → Multiple threads modify shared data → inconsistent results.
+
+Critical Section → Code that accesses shared resources (needs protection).
+
+Mutual Exclusion → Only one thread at a time executes critical section.
+
+synchronized → Ensures mutual exclusion.
+
+✅ Summary
+Use synchronized to prevent race conditions.
+
+Synchronization can be applied at:
+
+Method level → public synchronized void method()
+
+Block level → synchronized(object) { ... }
+
+Guarantees data consistency, but adds overhead (slower).
