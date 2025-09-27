@@ -1058,4 +1058,325 @@ Great for systems where responsiveness matters (e.g., servers, UI threads).
 | `tryLock()`           | Tries immediately (or with timeout). Non-blocking option. |
 | `lockInterruptibly()` | Blocks until lock is acquired **but responds to interrupts**. |
 
+# ⚖️ Fair vs Unfair Locking in Java
+
+## 🔑 What is Fairness in Locks?
+- **Fair Lock**: Threads acquire the lock **in the order they requested it** (FIFO).
+- **Unfair Lock (Default)**: Threads may "jump the queue" if the lock happens to be free when they request it.
+  - This can improve performance but may cause **starvation** for some threads.
+
+---
+
+## 🟢 Example: Fair Lock
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+class FairExample {
+    private final ReentrantLock lock = new ReentrantLock(true); // fair = true
+
+    public void work() {
+        try {
+            lock.lock();
+            System.out.println(Thread.currentThread().getName() + " acquired the lock");
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+        FairExample obj = new FairExample();
+        Runnable task = obj::work;
+
+        for (int i = 1; i <= 5; i++) {
+            new Thread(task, "Thread-" + i).start();
+        }
+    }
+}
+```
+✅ Output (Fair Lock, FIFO Order)
+
+Thread-1 acquired the lock
+Thread-2 acquired the lock
+Thread-3 acquired the lock
+Thread-4 acquired the lock
+Thread-5 acquired the lock
+🔴 Example: Unfair Lock (Default)
+
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+class UnfairExample {
+    private final ReentrantLock lock = new ReentrantLock(); // unfair by default
+
+    public void work() {
+        try {
+            lock.lock();
+            System.out.println(Thread.currentThread().getName() + " acquired the lock");
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+        UnfairExample obj = new UnfairExample();
+        Runnable task = obj::work;
+
+        for (int i = 1; i <= 5; i++) {
+            new Thread(task, "Thread-" + i).start();
+        }
+    }
+}
+```
+⚠️ Output (Unfair Lock, No Guaranteed Order)
+Thread-3 acquired the lock
+Thread-1 acquired the lock
+Thread-4 acquired the lock
+Thread-2 acquired the lock
+Thread-5 acquired the lock
+
+📌 Summary
+Fair Lock → Ensures FIFO ordering, avoids starvation.
+
+Unfair Lock (default) → Faster (better throughput), but some threads may starve.
+
+Choose based on use case:
+
+Fair → Banking systems, critical ordering.
+
+Unfair → High-performance apps where strict ordering isn’t required.
+
+# ReadWriteLock (Deep Dive)
+
+`ReadWriteLock` (most commonly `ReentrantReadWriteLock`) is a synchronization aid that distinguishes **read access** from **write access**.  
+It allows **multiple threads to read** a shared resource concurrently while **only one thread** may write at a time. This is ideal for **read-heavy** workloads.
+
+---
+
+## 🔑 Core Ideas
+
+- **Read Lock** (`readLock()`):
+  - Shared lock. Multiple readers can hold it **simultaneously** (if no writer holds the write lock).
+  - Good for operations that only observe state (no mutation).
+- **Write Lock** (`writeLock()`):
+  - Exclusive lock. Only one writer can hold it, and no readers are allowed while it is held.
+  - Used for operations that modify state.
+- **Reentrant**: the same thread can reacquire read/write locks it already holds (subject to rules).
+- **Fairness**: `ReentrantReadWriteLock` can be constructed `new ReentrantReadWriteLock(true)` to enforce FIFO ordering; default is unfair (higher throughput).
+
+**Use if:** your application is read-heavy (many reads, few writes) — e.g., caches, configuration access, analytics reads.
+
+**Don’t use if:** writes are frequent (then read/write lock offers little benefit vs. a simple exclusive lock); or if the data structure has very small critical sections where lock overhead dominates.
+
+---
+
+## ✅ Memory & Visibility
+Acquiring/releasing read/write locks establishes **happens-before** relationships (like `synchronized`), so changes made under a write lock become visible to later readers.
+
+---
+
+## ⚠️ Important Pitfalls & Rules
+
+- **Writer starvation**: in unfair mode, readers can continuously acquire the read lock and starve writers. Use fair mode or strategies (timeouts, tryLock) when needed.
+- **Lock upgrade = dangerous**: attempting to *upgrade* from read lock → write lock (i.e., holding a read lock and then acquiring the write lock) **can deadlock**. Release the read lock first before acquiring the write lock.
+- **Lock downgrade = allowed**: acquiring the write lock, then acquiring the read lock, then releasing the write lock (downgrade) is safe and supported.
+- **Use finally** to always `unlock()`.
+
+---
+
+## Typical API (ReentrantReadWriteLock)
+```java
+ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+Lock readLock  = lock.readLock();
+Lock writeLock = lock.writeLock();
+
+readLock.lock();      // acquire shared read access
+readLock.unlock();
+
+writeLock.lock();     // acquire exclusive write access
+writeLock.unlock();
+
+writeLock.tryLock(timeout, TimeUnit.MILLISECONDS);  // try with timeout
+writeLock.lockInterruptibly();                     // interruptible wait
+```
+Example 1 — Simple Readers / Single Writer
+This example demonstrates multiple reader threads reading concurrently, while writer threads run exclusively.
+
+```java
+
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.Lock;
+
+class SharedData {
+    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock r = rwLock.readLock();
+    private final Lock w = rwLock.writeLock();
+
+    private int value = 0;
+
+    // Read method (many threads can read concurrently)
+    public int read() {
+        r.lock();
+        try {
+            // simulate read delay
+            Thread.sleep(100);
+            return value;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return -1;
+        } finally {
+            r.unlock();
+        }
+    }
+
+    // Write method (exclusive)
+    public void write(int newValue) {
+        w.lock();
+        try {
+            // simulate write delay
+            Thread.sleep(200);
+            value = newValue;
+            System.out.println(Thread.currentThread().getName() + " wrote " + newValue);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            w.unlock();
+        }
+    }
+}
+
+public class ReadWriteExample {
+    public static void main(String[] args) {
+        SharedData sd = new SharedData();
+
+        // start reader threads
+        for (int i = 0; i < 5; i++) {
+            new Thread(() -> {
+                for (int j = 0; j < 5; j++) {
+                    int v = sd.read();
+                    System.out.println(Thread.currentThread().getName() + " read " + v);
+                }
+            }, "Reader-" + i).start();
+        }
+
+        // start writer threads
+        for (int i = 0; i < 2; i++) {
+            final int val = i + 100;
+            new Thread(() -> {
+                for (int j = 0; j < 3; j++) {
+                    sd.write(val + j);
+                }
+            }, "Writer-" + i).start();
+        }
+    }
+}
+```
+What you’ll observe: multiple Reader-* threads will often print their reads simultaneously (concurrent reads). Writer-* messages appear exclusively, and while a writer is writing readers are blocked.
+
+Example 2 — Downgrading vs Unsafe Upgrading
+Downgrade (safe): acquire write lock → update → acquire read lock → release write lock → continue reading.
+
+Unsafe Upgrade: holding a read lock and then trying to acquire write lock may deadlock (other readers exist).
+
+```java
+
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.Lock;
+
+class DataWithDowngrade {
+    private final ReentrantReadWriteLock rw = new ReentrantReadWriteLock();
+    private final Lock r = rw.readLock();
+    private final Lock w = rw.writeLock();
+    private int data = 0;
+
+    // Unsafe upgrade (DON'T DO)
+    public void unsafeUpgrade() throws InterruptedException {
+        r.lock();
+        try {
+            // read something
+            if (data < 0) {
+                // try to upgrade - this may deadlock if other readers exist
+                w.lock(); // BAD: holding readLock while trying to get writeLock
+                try {
+                    data = 42;
+                } finally {
+                    w.unlock();
+                }
+            }
+        } finally {
+            r.unlock();
+        }
+    }
+
+    // Safe downgrade
+    public void safeWriteThenRead() {
+        w.lock();
+        try {
+            data++;
+            // now acquire read lock before releasing write lock to safely continue with read
+            r.lock();
+        } finally {
+            w.unlock();  // still hold read lock
+        }
+
+        try {
+            // now read while holding read lock
+            System.out.println("After write, read = " + data);
+        } finally {
+            r.unlock();
+        }
+    }
+}
+```
+Rule of thumb: To upgrade from read → write, drop the read lock first, then acquire the write lock. To downgrade, acquire write then acquire read then release write.
+
+Advanced Usage Patterns
+tryLock(timeout) for writers: allows avoiding long blocking or starvation.
+
+lockInterruptibly(): allows interrupting a waiting thread (useful in responsive systems).
+
+Fair mode: new ReentrantReadWriteLock(true) reduces writer starvation but may reduce throughput.
+
+Example: writer using tryLock with timeout to avoid waiting forever:
+
+```java
+
+import java.util.concurrent.TimeUnit;
+
+if (w.tryLock(500, TimeUnit.MILLISECONDS)) {
+    try {
+        // safe write
+    } finally {
+        w.unlock();
+    }
+} else {
+    // couldn't get the lock within 500ms -> skip or retry later
+}
+```
+Performance Considerations
+ReadWriteLock pays overhead compared to a simple synchronized for very short critical sections. Use it when reads vastly outnumber writes.
+
+Writer-heavy scenarios may perform worse with ReadWriteLock (due to the complexity and potential reader-writer contention).
+
+Prefer specialized concurrent collections (ConcurrentHashMap, etc.) for common patterns — they are highly optimized.
+
+When to Use ReadWriteLock (Summary)
+Good fit: large, mostly-read data structures (caches, configuration, cached query results).
+
+Not a fit: extremely short critical sections with heavy writes (lock overhead may dominate), or when you can use lock-free or concurrent collections.
+
+Final Notes
+Always unlock() in finally.
+
+Be mindful of upgrade/downgrade semantics to avoid deadlocks.
+
+Consider fairness vs throughput trade-offs.
+
+Combine tryLock / lockInterruptibly to improve responsiveness and avoid starvation.
+
 
