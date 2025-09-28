@@ -1776,4 +1776,99 @@ They can only be used with functional interfaces.
 Syntax: (parameters) -> { body }.
 
 Makes Java code more concise, readable, and expressive.
+# 🔄 Thread Pool in Java
+
+## 📌 What is a Thread Pool?
+A **Thread Pool** is a collection of pre-created reusable threads that are managed by a framework (like `ExecutorService`).  
+Instead of creating a new thread every time a task is needed, the application reuses existing threads from the pool.
+
+---
+
+## 🤔 Why Do We Need a Thread Pool?
+
+### 1. **Resource Management**
+- Creating a new thread is **expensive** (takes memory, CPU time).
+- Too many threads can cause **OutOfMemoryError** or **context switching overhead**.
+- Thread Pool limits the **maximum number of active threads**, ensuring efficient use of system resources.
+
+### 2. **Improved Performance**
+- Reusing threads reduces the cost of thread creation/destruction.
+- Ideal for handling a large number of **short-lived tasks**.
+
+### 3. **Scalability**
+- Provides better scalability for applications with **concurrent tasks**.
+- Prevents uncontrolled growth of threads.
+
+### 4. **Centralized Management**
+- Easier to control thread lifecycle.
+- Allows scheduling, prioritization, and monitoring of tasks.
+
+---
+
+## ⚡ Example: Without Thread Pool
+```java
+public class WithoutThreadPool {
+    public static void main(String[] args) {
+        for (int i = 1; i <= 10; i++) {
+            Thread thread = new Thread(() -> {
+                System.out.println("Task executed by " + Thread.currentThread().getName());
+            });
+            thread.start();
+        }
+    }
+}
+```
+❌ Creates a new thread for every task → expensive.
+
+❌ No limit on threads → may exhaust resources.
+
+✅ Example: With Thread Pool (ExecutorService)
+```java
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class WithThreadPool {
+    public static void main(String[] args) {
+        // Create a fixed thread pool with 3 threads
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+
+        for (int i = 1; i <= 10; i++) {
+            final int taskId = i;
+            executor.execute(() -> {
+                System.out.println("Task " + taskId + " executed by " + Thread.currentThread().getName());
+            });
+        }
+
+        executor.shutdown(); // Gracefully shut down the pool
+    }
+}
+```
+✅ Output (sample)
+
+Task 1 executed by pool-1-thread-1
+Task 2 executed by pool-1-thread-2
+Task 3 executed by pool-1-thread-3
+Task 4 executed by pool-1-thread-1
+...
+🛠️ Types of Thread Pools in Java
+Java provides different Executor factory methods (Executors class):
+
+FixedThreadPool → A fixed number of threads (Executors.newFixedThreadPool(n)).
+
+CachedThreadPool → Creates new threads as needed, reuses old ones (Executors.newCachedThreadPool()).
+
+SingleThreadExecutor → Only one thread executes tasks sequentially (Executors.newSingleThreadExecutor()).
+
+ScheduledThreadPool → For periodic tasks (Executors.newScheduledThreadPool(n)).
+
+🔑 Key Takeaways
+Thread Pool = Reusable threads for efficient resource management.
+
+Prevents system from being overloaded by too many threads.
+
+Provides better performance, scalability, and control.
+
+Used widely in web servers, databases, and multithreaded applications.
+
 
