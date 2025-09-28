@@ -1379,4 +1379,142 @@ Consider fairness vs throughput trade-offs.
 
 Combine tryLock / lockInterruptibly to improve responsiveness and avoid starvation.
 
+# 💀 Deadlock in Java — Coffman Conditions
 
+Deadlock happens when two or more threads are **permanently blocked**, waiting for resources held by each other.  
+
+According to **Coffman conditions**, a deadlock occurs only if **all four conditions** hold simultaneously.
+
+---
+
+## 🔑 Four Coffman Conditions
+
+1. **Mutual Exclusion**
+   - Resources cannot be shared (e.g., locks, files, DB connections).
+   - Only one thread can use a resource at a time.
+
+2. **Hold and Wait**
+   - Threads hold resources while waiting for additional ones.
+   - They don’t release what they already own.
+
+3. **No Preemption**
+   - Resources cannot be forcibly taken away.
+   - Only the thread holding a resource can release it.
+
+4. **Circular Wait**
+   - A cycle of waiting exists:
+     - Thread A waits for resource held by Thread B
+     - Thread B waits for resource held by Thread C
+     - Thread C waits for resource held by Thread A
+
+---
+
+## ⚠️ Deadlock Example (Java)
+
+```java
+class SharedResource {
+    void method1() {
+        synchronized (String.class) {
+            System.out.println(Thread.currentThread().getName() + " locked String.class");
+
+            try { Thread.sleep(100); } catch (InterruptedException e) {}
+
+            synchronized (Integer.class) {
+                System.out.println(Thread.currentThread().getName() + " locked Integer.class");
+            }
+        }
+    }
+
+    void method2() {
+        synchronized (Integer.class) {
+            System.out.println(Thread.currentThread().getName() + " locked Integer.class");
+
+            try { Thread.sleep(100); } catch (InterruptedException e) {}
+
+            synchronized (String.class) {
+                System.out.println(Thread.currentThread().getName() + " locked String.class");
+            }
+        }
+    }
+}
+
+public class DeadlockDemo {
+    public static void main(String[] args) {
+        SharedResource resource = new SharedResource();
+
+        Thread t1 = new Thread(resource::method1, "Thread-1");
+        Thread t2 = new Thread(resource::method2, "Thread-2");
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+📝 Output (sample)
+arduino
+Copy code
+Thread-1 locked String.class
+Thread-2 locked Integer.class
+// ❌ Both threads are stuck waiting forever
+Here:
+
+Thread-1 → holds String.class, waiting for Integer.class
+
+Thread-2 → holds Integer.class, waiting for String.class
+
+Both are stuck → Deadlock!
+
+✅ Deadlock Prevention
+We can prevent deadlocks by breaking at least one Coffman condition.
+The most common strategy is breaking Circular Wait using a resource ordering rule.
+
+Example: Ordered Lock Acquisition
+
+```java
+class SharedResourceSafe {
+    void method1() {
+        synchronized (String.class) {
+            System.out.println(Thread.currentThread().getName() + " locked String.class");
+
+            try { Thread.sleep(100); } catch (InterruptedException e) {}
+
+            synchronized (Integer.class) {
+                System.out.println(Thread.currentThread().getName() + " locked Integer.class");
+            }
+        }
+    }
+
+    void method2() {
+        // Enforce same order: String -> Integer
+        synchronized (String.class) {
+            System.out.println(Thread.currentThread().getName() + " locked String.class");
+
+            try { Thread.sleep(100); } catch (InterruptedException e) {}
+
+            synchronized (Integer.class) {
+                System.out.println(Thread.currentThread().getName() + " locked Integer.class");
+            }
+        }
+    }
+}
+
+public class DeadlockPrevention {
+    public static void main(String[] args) {
+        SharedResourceSafe resource = new SharedResourceSafe();
+
+        Thread t1 = new Thread(resource::method1, "Thread-1");
+        Thread t2 = new Thread(resource::method2, "Thread-2");
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+📝 Output (sample)
+vbnet
+Copy code
+Thread-1 locked String.class
+Thread-1 locked Integer.class
+Thread-2 locked String.class
+Thread-2 locked Integer.class
+✅ No deadlock because both threads acquire locks in the same global order (String → Integer).
