@@ -1667,3 +1667,18 @@ If multiple consumers or producers exist, notifyAll() ensures no thread remains 
 notify() is fine for single producer-consumer setups.
 
 🚀 With wait(), notify(), and notifyAll(), threads can communicate efficiently, avoiding busy-waiting and deadlocks.
+
+# 🧵 Thread Safety in Java
+
+## 📌 What is Thread Safety?
+**Thread Safety** means that a piece of code, class, or object behaves correctly when **accessed by multiple threads at the same time**, without causing:
+- Inconsistent data
+- Race conditions
+- Unexpected behavior
+
+If code is **thread-safe**, it ensures that:
+1. Data remains consistent.
+2. No corruption or errors occur when multiple threads access shared resources.
+3. Synchronization or proper concurrency mechanisms are used.
+
+---
