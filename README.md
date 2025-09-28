@@ -1518,3 +1518,152 @@ Thread-1 locked Integer.class
 Thread-2 locked String.class
 Thread-2 locked Integer.class
 ✅ No deadlock because both threads acquire locks in the same global order (String → Integer).
+
+# 🔄 Thread Communication in Java (`wait()`, `notify()`, `notifyAll()`)
+
+## ⚠️ Problem Without Communication
+- Without proper communication, threads may end up in **busy-waiting** states.
+- Busy-waiting = a thread keeps checking a condition repeatedly instead of waiting efficiently.
+- This wastes CPU resources and can lead to **deadlocks**.
+
+❌ Example of Busy Waiting (inefficient):
+```java
+while (!condition) {
+    // continuously checking wastes CPU time
+}
+```
+✅ Java's Solution: Thread Communication
+Java provides methods from the Object class for thread communication:
+
+wait()
+
+Makes the current thread release the lock and wait until notify() or notifyAll() is called.
+
+notify()
+
+Wakes up one waiting thread (chosen by the JVM).
+
+notifyAll()
+
+Wakes up all waiting threads.
+
+⚠️ Important: These methods must always be used inside a synchronized block or method.
+
+🏭 Example: Producer-Consumer Problem
+We’ll implement the classic Producer-Consumer Problem using wait() and notify().
+
+🔹 Shared Resource Class
+```java
+
+class SharedResource {
+    private int data;
+    private boolean hasData = false;
+
+    // Producer puts data
+    public synchronized void produce(int value) {
+        while (hasData) { // wait until consumer consumes
+            try {
+                wait(); // releases lock and waits
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        data = value;
+        hasData = true;
+        System.out.println("Produced: " + value);
+        notify(); // wake up consumer
+    }
+
+    // Consumer takes data
+    public synchronized int consume() {
+        while (!hasData) { // wait until producer produces
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        hasData = false;
+        notify(); // wake up producer
+        return data;
+    }
+}
+```
+🔹 Producer Thread
+```java
+
+class Producer implements Runnable {
+    private final SharedResource resource;
+
+    public Producer(SharedResource resource) {
+        this.resource = resource;
+    }
+
+    @Override
+    public void run() {
+        for (int i = 1; i <= 10; i++) {
+            resource.produce(i);
+        }
+    }
+}
+```
+🔹 Consumer Thread
+```java
+
+class Consumer implements Runnable {
+    private final SharedResource resource;
+
+    public Consumer(SharedResource resource) {
+        this.resource = resource;
+    }
+
+    @Override
+    public void run() {
+        for (int i = 1; i <= 10; i++) {
+            int value = resource.consume();
+            System.out.println("Consumed: " + value);
+        }
+    }
+}
+```
+🔹 Driver Program
+```java
+
+public class ThreadCommunicationDemo {
+    public static void main(String[] args) {
+        SharedResource resource = new SharedResource();
+
+        Thread producer = new Thread(new Producer(resource), "Producer");
+        Thread consumer = new Thread(new Consumer(resource), "Consumer");
+
+        producer.start();
+        consumer.start();
+    }
+}
+```
+📝 Sample Output
+
+Produced: 1
+Consumed: 1
+Produced: 2
+Consumed: 2
+...
+Produced: 10
+Consumed: 10
+🔑 Key Points
+wait() → Pauses the thread until notified, releases lock while waiting.
+
+notify() → Wakes up one waiting thread.
+
+notifyAll() → Wakes up all waiting threads.
+
+Always use wait() inside a loop (while) to avoid spurious wakeups.
+
+synchronized is required when using wait(), notify(), and notifyAll().
+
+📌 Why Use notifyAll()?
+If multiple consumers or producers exist, notifyAll() ensures no thread remains waiting forever.
+
+notify() is fine for single producer-consumer setups.
+
+🚀 With wait(), notify(), and notifyAll(), threads can communicate efficiently, avoiding busy-waiting and deadlocks.
