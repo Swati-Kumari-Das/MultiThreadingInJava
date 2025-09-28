@@ -1682,3 +1682,98 @@ If code is **thread-safe**, it ensures that:
 3. Synchronization or proper concurrency mechanisms are used.
 
 ---
+
+# 🔹 Lambda Expressions in Java
+
+## 📌 What is a Lambda Expression?
+A **Lambda Expression** is a short block of code that represents an **anonymous function** (a function without a name).  
+It can be treated like an object and passed around as a parameter to methods.  
+
+👉 Introduced in **Java 8**, it enables **functional programming** and makes code more concise.
+
+---
+
+## 🔑 Key Characteristics
+- ✅ **Anonymous function** → Has no name.  
+- ✅ **Concise syntax** → Shorter than anonymous inner classes.  
+- ✅ **Functional interface requirement** → Works only with **Functional Interfaces** (interfaces with exactly **one abstract method**).  
+- ✅ **Can be passed as arguments** → Used in multithreading, collections, and event handling.
+
+---
+
+## 📝 Syntax
+```java
+(parameters) -> { expression or statements }
+⚡ Examples
+1. Simple Lambda
+
+Runnable runnable = () -> System.out.println("Hello");
+Thread t1 = new Thread(runnable);
+t1.start();
+Or even shorter:
+
+
+Thread t1 = new Thread(() -> System.out.println("Hello"));
+t1.start();
+2. With Parameters
+
+Student lawStudent = name -> name + " is law student";
+
+System.out.println(lawStudent.getBio("Ram"));
+3. Multi-Line Lambda
+
+Thread t1 = new Thread(() -> {
+    for (int i = 0; i < 10; i++) {
+        System.out.println("Hello world");
+    }
+});
+t1.start();
+
+4. Functional Interface Example
+
+@FunctionalInterface
+public interface Student {
+    String getBio(String name);
+}
+
+public class Test2 {
+    public static void main(String[] args) {
+        // Anonymous inner class
+        Student engineeringStudent = new Student() {
+            @Override
+            public String getBio(String name) {
+                return name + " is Engineering student";
+            }
+        };
+
+        // Lambda expression
+        Student lawStudent = name -> name + " is law student";
+
+        System.out.println(engineeringStudent.getBio("Ram"));
+        System.out.println(lawStudent.getBio("Shyam"));
+    }
+}
+```
+✅ Output
+
+Ram is Engineering student
+Shyam is law student
+
+🎯 Why Use Lambda Expressions?
+Less boilerplate code → No need for long anonymous inner classes.
+
+Improves readability → Code is shorter and cleaner.
+
+Encourages functional programming in Java.
+
+Works well with Streams API, Collections API, and Concurrency API.
+
+📋 Summary
+Lambda expressions allow you to write anonymous functions.
+
+They can only be used with functional interfaces.
+
+Syntax: (parameters) -> { body }.
+
+Makes Java code more concise, readable, and expressive.
+
