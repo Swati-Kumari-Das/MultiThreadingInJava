@@ -1916,9 +1916,9 @@ public class Main {
         return fact;
     }
 }
+```
 ✅ Example: Fixed Pool (3 Threads)
-java
-Copy code
+```java
 import java.util.concurrent.*;
 
 public class Main {
@@ -1942,9 +1942,10 @@ public class Main {
         return fact;
     }
 }
+```
 ✅ Example: Single Thread Executor + Future
-java
-Copy code
+```java
+
 import java.util.concurrent.*;
 
 public class Main {
@@ -1957,6 +1958,7 @@ public class Main {
         executorService.shutdown();
     }
 }
+```
 🔑 ExecutorService Methods
 Method	Description
 .submit(Runnable)	Runs a task (no return value).
@@ -1969,8 +1971,8 @@ Method	Description
 .isTerminated()	Returns true if all tasks finished.
 
 ✅ Example: Callable with Return Value
-java
-Copy code
+```java
+
 import java.util.concurrent.*;
 
 public class Main {
@@ -1986,12 +1988,13 @@ public class Main {
         System.out.println(executorService.isTerminated());
     }
 }
+```
 // Output:
 // sum is 3
 // true
 ✅ Example: invokeAll()
-java
-Copy code
+```java
+
 import java.util.concurrent.*;
 import java.util.Arrays;
 import java.util.List;
@@ -2015,6 +2018,7 @@ public class Main {
         executorService.shutdown();
     }
 }
+```
 🆚 Runnable vs Callable
 Feature	Runnable	Callable
 Interface	java.lang.Runnable	java.util.concurrent.Callable<V>
