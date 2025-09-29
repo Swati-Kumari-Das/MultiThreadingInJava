@@ -1871,4 +1871,166 @@ Provides better performance, scalability, and control.
 
 Used widely in web servers, databases, and multithreaded applications.
 
+# ⚡ Executors Framework in Java
+
+## 📌 Introduction
+The **Executors Framework** was introduced in **Java 5** as part of the `java.util.concurrent` package.  
+It simplifies the development of concurrent applications by abstracting away the complexity of **creating, managing, and controlling threads**.
+
+---
+
+## 🚦 Why Executors Framework?
+1. **Manual Thread Management** → Avoids creating threads manually for every task.  
+2. **Resource Management** → Prevents system overload by limiting the number of concurrent threads.  
+3. **Scalability** → Handles thousands of tasks efficiently.  
+4. **Thread Reuse** → Reuses existing threads instead of creating/destroying repeatedly.  
+5. **Error Handling** → Provides `Future` and exception handling support.  
+
+---
+
+## ✅ Example: Fixed Thread Pool
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Main {
+    public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
+        ExecutorService executor = Executors.newFixedThreadPool(9);
+
+        for (int i = 1; i < 10; i++) {
+            int finalI = i;
+            executor.submit(() -> {
+                long result = factorial(finalI);
+                System.out.println(result);
+            });
+        }
+
+        executor.shutdown();
+        System.out.println("Total time: " + (System.currentTimeMillis() - startTime));
+    }
+
+    private static long factorial(int n) {
+        long fact = 1;
+        for (int i = 1; i <= n; i++) fact *= i;
+        return fact;
+    }
+}
+✅ Example: Fixed Pool (3 Threads)
+java
+Copy code
+import java.util.concurrent.*;
+
+public class Main {
+    public static void main(String[] args) {
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+
+        for (int i = 1; i < 10; i++) {
+            int finalI = i;
+            executor.submit(() -> {
+                long result = factorial(finalI);
+                System.out.println(result);
+            });
+        }
+
+        executor.shutdown();
+    }
+
+    private static long factorial(int n) {
+        long fact = 1;
+        for (int i = 1; i <= n; i++) fact *= i;
+        return fact;
+    }
+}
+✅ Example: Single Thread Executor + Future
+java
+Copy code
+import java.util.concurrent.*;
+
+public class Main {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        Future<?> future = executorService.submit(() -> System.out.println("Hello"));
+        future.get(); // waits for task completion
+
+        executorService.shutdown();
+    }
+}
+🔑 ExecutorService Methods
+Method	Description
+.submit(Runnable)	Runs a task (no return value).
+.submit(Callable)	Runs a task and returns a value.
+.submit(Runnable, result)	Runs task and returns given result.
+.shutdown()	Initiates graceful shutdown (no new tasks).
+.shutdownNow()	Stops all running tasks immediately.
+.awaitTermination()	Waits for tasks to finish before shutdown.
+.isShutdown()	Returns true if shutdown has started.
+.isTerminated()	Returns true if all tasks finished.
+
+✅ Example: Callable with Return Value
+java
+Copy code
+import java.util.concurrent.*;
+
+public class Main {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        Future<Integer> submit = executorService.submit(() -> 1 + 2);
+        Integer i = submit.get(); // waits for result
+
+        System.out.println("sum is " + i);
+
+        executorService.shutdown();
+        System.out.println(executorService.isTerminated());
+    }
+}
+// Output:
+// sum is 3
+// true
+✅ Example: invokeAll()
+java
+Copy code
+import java.util.concurrent.*;
+import java.util.Arrays;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        Callable<Integer> callable1 = () -> 1;
+        Callable<Integer> callable2 = () -> 2;
+        Callable<Integer> callable3 = () -> 3;
+
+        List<Callable<Integer>> list = Arrays.asList(callable1, callable2, callable3);
+
+        List<Future<Integer>> futures = executorService.invokeAll(list);
+
+        for (Future<Integer> f : futures) {
+            System.out.println(f.get());
+        }
+
+        executorService.shutdown();
+    }
+}
+🆚 Runnable vs Callable
+Feature	Runnable	Callable
+Interface	java.lang.Runnable	java.util.concurrent.Callable<V>
+Method	void run()	V call() throws Exception
+Return Type	void (no result)	Generic type V (can return result)
+Exceptions	Cannot throw checked exceptions	Can throw checked exceptions
+Usage	Tasks with no return value	Tasks needing a result or exception handling
+
+🌟 Key Benefits of ExecutorService
+Thread Pool Management: Reuses threads efficiently.
+
+Resource Control: Limits concurrent threads.
+
+Task Scheduling: Manages execution order.
+
+Result Handling: Uses Future to retrieve results.
+
+Lifecycle Management: Clean startup/shutdown of thread pools.
 
