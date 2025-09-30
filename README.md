@@ -2038,3 +2038,86 @@ Result Handling: Uses Future to retrieve results.
 
 Lifecycle Management: Clean startup/shutdown of thread pools.
 
+
+# 🚀 Executors in Java
+
+## 1️⃣ Executor
+- **Interface** in `java.util.concurrent`.
+- Provides a simple way to **launch new tasks**.
+- Method:  
+  ```java
+  void execute(Runnable command);
+  ```
+Limitation → Only accepts Runnable (no return value, no checked exceptions).
+
+✅ Example:
+
+```java
+
+Executor executor = Executors.newSingleThreadExecutor();
+executor.execute(() -> System.out.println("Task executed"));
+```
+2️⃣ ExecutorService
+Sub-interface of Executor.
+
+More powerful → supports task submission, result retrieval, and lifecycle management.
+
+Accepts both:
+
+Runnable (no result)
+
+Callable<T> (returns result, can throw exceptions)
+
+Key Features:
+submit() → returns a Future (to track or get result).
+
+invokeAll() → run multiple tasks, wait for all to finish.
+
+shutdown() / shutdownNow() → manage thread pool lifecycle.
+
+✅ Example:
+
+```java
+
+ExecutorService executor = Executors.newFixedThreadPool(3);
+Future<Integer> result = executor.submit(() -> 5 * 2);
+System.out.println("Result: " + result.get());
+executor.shutdown();
+```
+3️⃣ ScheduledExecutorService
+Sub-interface of ExecutorService.
+
+Supports delayed and periodic task execution.
+
+Like a reliable replacement for Timer/TimerTask.
+
+Key Features:
+schedule() → run a task once after delay.
+
+scheduleAtFixedRate() → run task repeatedly with fixed interval.
+
+scheduleWithFixedDelay() → run repeatedly with a delay between executions.
+
+✅ Example:
+
+```java
+
+ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+
+// Run once after 2 seconds
+scheduler.schedule(() -> System.out.println("Delayed Task"), 2, TimeUnit.SECONDS);
+
+// Run every 3 seconds (fixed rate)
+scheduler.scheduleAtFixedRate(() -> System.out.println("Fixed Rate Task"),
+                              1, 3, TimeUnit.SECONDS);
+
+// Run repeatedly with 5 sec delay between runs
+scheduler.scheduleWithFixedDelay(() -> System.out.println("Fixed Delay Task"),
+                                 1, 5, TimeUnit.SECONDS);
+```
+📝 Summary
+Interface	Purpose	Example Use Case
+Executor	Launch tasks	Fire-and-forget task execution
+ExecutorService	Manage + track tasks	Return results, manage lifecycle
+ScheduledExecutorService	Run tasks with delay/periodically	Cron-like scheduling, background jobs
+
